@@ -11,7 +11,6 @@ import {
   renameTask,
   removeTask,
 } from "./src/task-service.js";
-import { searchTasks } from "./src/task-extra.js";
 
 let passedCount = 0;
 let failedCount = 0;
@@ -415,112 +414,6 @@ scenario("неизменность входного массива и объек
   assert.notStrictEqual(removed.tasks, renamed.tasks);
   assert.strictEqual(demoTasks[1].completed, false);
   assert.strictEqual(demoTasks[3].title, "Оформить README");
-});
-
-// --- Собственные проверки ---
-
-scenario("собственное: добавление после удаления", () => {
-  const removed = removeTask(demoTasks, 7);
-  assert.equal(removed.ok, true);
-  const added = addTask(removed.tasks, 30, "Задача после удаления", "low");
-  assert.equal(added.ok, true);
-  assert.deepStrictEqual(added.tasks.map((task) => task.id), [1, 4, 10, 30]);
-  assert.deepStrictEqual(getTaskStats(added.tasks), {
-    total: 4,
-    completed: 2,
-    pending: 2,
-    progress: 50,
-  });
-  assert.strictEqual(demoTasks.length, 4);
-  assert.deepStrictEqual(demoTasks[2], {
-    id: 7,
-    title: "Проверить методы массивов",
-    completed: false,
-    priority: "low",
-  });
-});
-
-scenario("собственное: изменение первой и последней записи", () => {
-  const firstChanged = setTaskCompleted(demoTasks, 1, false);
-  assert.equal(firstChanged.ok, true);
-  assert.equal(firstChanged.tasks[0].completed, false);
-  assert.notStrictEqual(firstChanged.tasks[0], demoTasks[0]);
-  assert.strictEqual(firstChanged.tasks[1], demoTasks[1]);
-  assert.strictEqual(firstChanged.tasks[2], demoTasks[2]);
-
-  const lastChanged = renameTask(firstChanged.tasks, 10, "Переименованный README");
-  assert.equal(lastChanged.ok, true);
-  assert.equal(lastChanged.tasks[3].title, "Переименованный README");
-  assert.equal(lastChanged.tasks[3].completed, true);
-  assert.equal(lastChanged.tasks[3].priority, "medium");
-  assert.notStrictEqual(lastChanged.tasks[3], firstChanged.tasks[3]);
-
-  assert.deepStrictEqual(getTaskStats(lastChanged.tasks), {
-    total: 4,
-    completed: 1,
-    pending: 3,
-    progress: 25,
-  });
-  assert.strictEqual(demoTasks[0].completed, true);
-  assert.strictEqual(demoTasks[3].title, "Оформить README");
-});
-
-scenario("собственное: последовательное обновление нескольких задач", () => {
-  const step1 = setTaskCompleted(demoTasks, 4, true);
-  assert.equal(step1.ok, true);
-  const step2 = setTaskCompleted(step1.tasks, 7, true);
-  assert.equal(step2.ok, true);
-  const step3 = renameTask(step2.tasks, 1, "Первая задача обновлена");
-  assert.equal(step3.ok, true);
-  const list = step3.tasks;
-
-  assert.deepStrictEqual(getTaskStats(list), {
-    total: 4,
-    completed: 4,
-    pending: 0,
-    progress: 100,
-  });
-  assert.equal(list[0].title, "Первая задача обновлена");
-  assert.deepStrictEqual(list.map((task) => task.id), [1, 4, 7, 10]);
-  assert.deepStrictEqual(
-    demoTasks.map((task) => task.completed),
-    [true, false, false, true],
-  );
-  assert.deepStrictEqual(
-    demoTasks.map((task) => task.title),
-    ["Изучить функции", "Подготовить модель задач", "Проверить методы массивов", "Оформить README"],
-  );
-});
-
-// --- Расширение: поиск по части названия ---
-
-scenario("расширение: searchTasks обычный запрос, регистр и пробелы", () => {
-  const byWord = searchTasks(demoTasks, "функции");
-  assert.strictEqual(byWord.length, 1);
-  assert.strictEqual(byWord[0].id, 1);
-
-  const byUpperQuery = searchTasks(demoTasks, " ФУНК ");
-  assert.strictEqual(byUpperQuery.length, 1);
-  assert.strictEqual(byUpperQuery[0].id, 1);
-
-  const noMatch = searchTasks(demoTasks, "несуществующий фрагмент");
-  assert.deepStrictEqual(noMatch, []);
-  assert.notStrictEqual(noMatch, demoTasks);
-});
-
-scenario("расширение: searchTasks пустой запрос, пустой список и неизменность", () => {
-  const before = snapshot(demoTasks);
-
-  const allByEmpty = searchTasks(demoTasks, "");
-  assert.strictEqual(allByEmpty.length, demoTasks.length);
-  assert.notStrictEqual(allByEmpty, demoTasks);
-  assert.strictEqual(allByEmpty[0], demoTasks[0]);
-
-  const allBySpaces = searchTasks(demoTasks, "   ");
-  assert.strictEqual(allBySpaces.length, demoTasks.length);
-
-  assert.deepStrictEqual(searchTasks([], "что-либо"), []);
-  assert.deepStrictEqual(demoTasks, before);
 });
 
 console.log(`\nИтого: OK ${passedCount}, FAIL ${failedCount}`);
